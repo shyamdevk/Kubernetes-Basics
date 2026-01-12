@@ -353,4 +353,294 @@ YAML → kubectl → API Server → Scheduler → Kubelet → Service → App
 
 ---
 
+# 🚀 Lab: Configure Kubernetes Architecture on AWS (Amazon Linux)
 
+## 📌 Lab Objective
+
+In this lab, you will learn how to **set up a basic Kubernetes cluster on AWS EC2** using **Amazon Linux**, consisting of:
+
+* 🧠 **1 Master Node**
+* ⚙️ **2 Worker Nodes**
+
+### Components Overview
+
+| Component        | Purpose                     |
+| ---------------- | --------------------------- |
+| **Master Node**  | Controls the cluster        |
+| **Worker Nodes** | Run application pods        |
+| **Docker**       | Container runtime           |
+| **kubeadm**      | Cluster initialization tool |
+| **kubelet**      | Runs on each node           |
+| **kubectl**      | Command-line tool           |
+
+---
+
+## ☁️ Step 1: Create EC2 Instances on AWS
+
+### 🔹 Instance Configuration (Same for All 3)
+
+| Setting        | Value                           |
+| -------------- | ------------------------------- |
+| OS             | Amazon Linux 2                  |
+| Instance Type  | `t2.medium` (Recommended)       |
+| Storage        | 20 GB                           |
+| Security Group | **Allow All Traffic (for lab)** |
+| Key Pair       | Your existing key               |
+
+> 💡 **Why `t2.medium`?**
+> Kubernetes needs more memory than `t2.micro` to run smoothly.
+
+---
+
+### 🔹 Create These Instances
+
+| Node Type | Instance Name  |
+| --------- | -------------- |
+| Master    | `k8s-master`   |
+| Worker 1  | `k8s-worker-1` |
+| Worker 2  | `k8s-worker-2` |
+
+---
+
+## 🔐 Step 2: Connect to EC2 Instances
+
+```bash
+ssh -i key.pem ec2-user@<PUBLIC-IP>
+```
+
+Run this **on all 3 instances**.
+
+---
+
+## 🐳 Step 3: Install Docker (All Nodes)
+
+### 1️⃣ Update System
+
+```bash
+sudo yum update -y
+```
+
+### 2️⃣ Install Docker
+
+```bash
+sudo yum install docker -y
+```
+
+### 3️⃣ Start & Enable Docker
+
+```bash
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+### 4️⃣ Add User to Docker Group
+
+```bash
+sudo usermod -aG docker ec2-user
+newgrp docker
+```
+
+### 5️⃣ Verify Docker
+
+```bash
+docker --version
+```
+
+✅ Run these steps on **Master & Worker nodes**
+
+---
+
+## ☸️ Step 4: Install Kubernetes Components (All Nodes)
+
+### 1️⃣ Disable Swap (Mandatory for Kubernetes)
+
+```bash
+sudo swapoff -a
+```
+
+---
+
+### 2️⃣ Configure Kubernetes Repository
+
+```bash
+cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=0
+EOF
+```
+
+---
+
+### 3️⃣ Install Kubernetes Packages
+
+```bash
+sudo yum install -y kubelet kubeadm kubectl
+```
+
+---
+
+### 4️⃣ Start & Enable kubelet
+
+```bash
+sudo systemctl start kubelet
+sudo systemctl enable kubelet
+```
+
+---
+
+### 5️⃣ Verify Installation
+
+```bash
+kubeadm version
+kubectl version --client
+```
+
+✅ Run on **all 3 nodes**
+
+---
+
+## 🧠 Step 5: Initialize Kubernetes Master Node
+
+⚠️ **Run ONLY on Master Node**
+
+```bash
+sudo kubeadm init
+```
+
+📌 After success, you’ll see a **kubeadm join command** — **save it**.
+
+---
+
+### Configure kubectl Access
+
+```bash
+mkdir -p $HOME/.kube
+sudo cp /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
+### Verify Master Node
+
+```bash
+kubectl get nodes
+```
+
+---
+
+
+## 👑 STEP 6: INITIALIZE CONTROL PLANE (MASTER ONLY)
+
+Run **only on the master node**:
+
+```bash
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+```
+
+📌 **Important**
+
+* Save the `kubeadm join` command shown at the end
+* Calico requires `192.168.0.0/16`
+
+---
+
+## 🔑 STEP 6: CONFIGURE kubectl (MASTER)
+
+```bash
+mkdir -p $HOME/.kube
+sudo cp /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
+Verify:
+
+```bash
+kubectl get nodes
+```
+
+---
+
+## 🌐 STEP 7: INSTALL CALICO (MASTER ONLY)
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
+```
+
+Wait 1–2 minutes, then check:
+
+```bash
+kubectl get pods -n kube-system
+```
+
+You should see `calico-node` in **Running** state.
+
+---
+
+## 🔗 STEP 8: JOIN WORKER NODES
+
+On **each worker node**, run the join command copied from the master:
+
+```bash
+sudo kubeadm join <MASTER-PRIVATE-IP>:6443 --token <token> --discovery-token-ca-cert-hash sha256:<hash>
+```
+
+✅ Successful join message:
+
+```
+This node has joined the cluster
+```
+
+---
+
+## ✅ STEP 9: VERIFY CLUSTER (MASTER)
+
+```bash
+kubectl get nodes
+```
+
+Expected output:
+
+```
+control-plane   Ready
+worker-1        Ready
+worker-2        Ready
+```
+
+---
+
+## 🧪 STEP 10: TEST THE CLUSTER (OPTIONAL)
+
+Deploy a test application:
+
+```bash
+kubectl create deployment nginx --image=nginx
+kubectl get pods -o wide
+```
+
+Pods should run on worker nodes.
+
+---
+
+## ❗ COMMON ISSUES & FIXES
+
+### Worker not joining
+
+* Ensure **same Security Group**
+* Test connectivity:
+
+```bash
+curl -k https://MASTER-IP:6443
+```
+
+Expected output: `Unauthorized`
+
+### Node shows NotReady
+
+* Wait 1–2 minutes for Calico
+* Check:
+
+```bash
+kubectl get pods -n kube-system
+```
