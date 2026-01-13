@@ -480,6 +480,143 @@ EOF
 sudo yum install -y kubelet kubeadm kubectl
 ```
 
+# If Above Not Worked, Try This (Optional)
+
+This guide helps you fix the **Kubernetes installation error** on **Amazon Linux / RHEL-based EC2 instances** when the command below fails:
+
+```bash
+sudo yum install -y kubelet kubeadm kubectl
+````
+
+### ❌ Common Error Faced
+
+```text
+Error: Failed to download metadata for repo 'kubernetes'
+Status code: 404
+No match for argument: kubelet kubeadm kubectl
+```
+
+---
+
+## 📌 Why This Error Happens
+
+* The old Kubernetes yum repository
+  `https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64/`
+  is **deprecated**
+* Kubernetes packages are no longer available from that source
+* So `yum` cannot find:
+
+  * `kubelet`
+  * `kubeadm`
+  * `kubectl`
+
+---
+
+## ✅ Solution: Use the New Official Kubernetes Repository
+
+Kubernetes now uses the **pkgs.k8s.io** repository.
+
+Follow the steps **exactly in order**.
+
+---
+
+## 🧹 Step 1: Remove Old Kubernetes Repo (If Exists)
+
+```bash
+sudo rm -f /etc/yum.repos.d/kubernetes.repo
+```
+
+---
+
+## ➕ Step 2: Add New Kubernetes Repository
+
+```bash
+sudo tee /etc/yum.repos.d/kubernetes.repo <<EOF
+[kubernetes]
+name=Kubernetes
+baseurl=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/
+enabled=1
+gpgcheck=1
+gpgkey=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/repodata/repomd.xml.key
+EOF
+```
+
+✔️ This is the **official and maintained** Kubernetes repository.
+
+---
+
+## 🔄 Step 3: Clean Yum Cache
+
+```bash
+sudo yum clean all
+sudo yum makecache
+```
+
+---
+
+## 📦 Step 4: Install Kubernetes Components
+
+```bash
+sudo yum install -y kubelet kubeadm kubectl
+```
+
+✔️ This should now install successfully.
+
+---
+
+## ▶️ Step 5: Enable and Start Kubelet
+
+```bash
+sudo systemctl enable kubelet
+sudo systemctl start kubelet
+```
+
+⚠️ Note:
+`kubelet` may show as **inactive** until the cluster is initialized — this is normal.
+
+---
+
+## 🔍 Step 6: Verify Installation
+
+```bash
+kubeadm version
+kubectl version --client
+kubelet --version
+```
+
+Expected output should show version like:
+
+```text
+v1.29.x
+```
+
+---
+
+## 🧠 Important Notes
+
+* ❌ Do NOT use `packages.cloud.google.com` anymore
+* ✅ Always use `pkgs.k8s.io`
+* Works on:
+
+  * Amazon Linux 2
+  * RHEL 7 / 8 / 9
+  * CentOS
+
+---
+
+## 🚀 Next Step (Master Node Only)
+
+Initialize Kubernetes Master Node:
+
+```bash
+sudo kubeadm init
+```
+
+Worker nodes will later join using the token generated here.
+
+---
+
+
 ---
 
 ### 4️⃣ Start & Enable kubelet
@@ -644,3 +781,231 @@ Expected output: `Unauthorized`
 ```bash
 kubectl get pods -n kube-system
 ```
+# 🧪 Lab: Install and Run Minikube on Ubuntu (EC2)
+
+## 🎯 Lab Objective
+This lab helps beginners understand how to:
+- Launch an Ubuntu EC2 instance
+- Update the system
+- Install Docker
+- Install kubectl
+- Install and start Minikube
+- Fix common Minikube & kubectl errors
+- Verify a working Kubernetes cluster
+
+---
+
+## 🛠 Prerequisites
+- AWS Account
+- Ubuntu Server 22.04 (EC2)
+- Internet access
+- Basic Linux commands
+
+---
+
+## 🧱 Step 1: Launch Ubuntu EC2 Instance
+
+1. Go to AWS Console → EC2 → Launch Instance
+2. Select **Ubuntu Server 22.04 LTS**
+3. Instance type: `t2.medium` (recommended)
+4. Storage: Minimum 20 GB
+5. Security Group:
+   - Allow **SSH (22)** from your IP
+6. Launch and download `.pem` key
+
+### Connect to EC2
+```bash
+ssh -i your-key.pem ubuntu@<EC2-PUBLIC-IP>
+````
+
+---
+
+## 🔄 Step 2: Update Ubuntu System
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+---
+
+## 🐳 Step 3: Install Docker (Required for Minikube)
+
+### Install Docker
+
+```bash
+sudo apt install docker.io -y
+```
+
+### Start and Enable Docker
+
+```bash
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+### Add User to Docker Group
+
+```bash
+sudo usermod -aG docker ubuntu
+```
+
+⚠️ Logout and login again:
+
+```bash
+exit
+ssh -i your-key.pem ubuntu@<EC2-PUBLIC-IP>
+```
+
+### Verify Docker
+
+```bash
+docker ps
+```
+
+---
+
+## ☸️ Step 4: Install kubectl (Kubernetes CLI)
+
+```bash
+curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+```
+
+```bash
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+```
+
+### Verify kubectl
+
+```bash
+kubectl version --client
+```
+
+---
+
+## 🚀 Step 5: Install Minikube
+
+```bash
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+```
+
+```bash
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+```
+
+### Verify Minikube
+
+```bash
+minikube version
+```
+
+---
+
+## ▶️ Step 6: Start Minikube Cluster (IMPORTANT)
+
+⚠️ **kubectl will NOT work until Minikube is started**
+
+Start Minikube using Docker driver:
+
+```bash
+minikube start --driver=docker
+```
+
+⏳ First startup may take 3–5 minutes.
+
+---
+
+## ✅ Step 7: Verify Minikube Status
+
+```bash
+minikube status
+```
+
+Expected Output:
+
+```
+type: Control Plane
+host: Running
+kubelet: Running
+apiserver: Running
+```
+
+---
+
+## ✅ Step 8: Verify Kubernetes Cluster
+
+```bash
+kubectl get nodes
+```
+
+Expected Output:
+
+```
+NAME       STATUS   ROLES           AGE   VERSION
+minikube   Ready    control-plane   1m    v1.xx.x
+```
+
+🎉 Kubernetes cluster is now running successfully!
+
+---
+
+## 🧪 Step 9 (Optional): Test with Sample Deployment
+
+```bash
+kubectl create deployment nginx --image=nginx
+kubectl get pods
+```
+
+---
+
+## 🛑 Common Error & Fix (IMPORTANT FOR BEGINNERS)
+
+### ❌ Error:
+
+```text
+The connection to the server localhost:8080 was refused
+```
+
+### ✅ Cause:
+
+* Minikube cluster is **not started**
+* kubectl has no Kubernetes API server to connect to
+
+### ✅ Fix:
+
+```bash
+minikube start --driver=docker
+```
+
+Then retry:
+
+```bash
+kubectl get nodes
+```
+
+---
+
+## 🧹 Stop or Delete Minikube
+
+### Stop Cluster
+
+```bash
+minikube stop
+```
+
+### Delete Cluster
+
+```bash
+minikube delete
+```
+
+---
+
+## 📌 Key Learning Points
+
+* Minikube **creates and runs** Kubernetes cluster
+* kubectl **only works after** cluster is running
+* Always start Minikube before using kubectl
+* Docker is required for Minikube on EC2
+
+---
