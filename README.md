@@ -1009,3 +1009,356 @@ minikube delete
 * Docker is required for Minikube on EC2
 
 ---
+# Kubernetes Objects
+
+## What are Kubernetes Objects?
+Kubernetes objects are **persistent entities** used by Kubernetes to represent the **desired state** of a cluster.
+
+They define:
+- What applications should run
+- How many instances should run
+- How applications communicate
+- How storage is managed
+
+Objects are usually created using **YAML files**.
+
+---
+
+## Basic Structure of a Kubernetes Object
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example-pod
+spec:
+  containers:
+  - name: app
+    image: nginx
+````
+
+### Common Fields:
+
+* **apiVersion** – API version used
+* **kind** – Type of object
+* **metadata** – Name, labels, namespace
+* **spec** – Desired state
+* **status** – Current state (managed by Kubernetes)
+
+---
+
+## Core Kubernetes Objects
+
+---
+
+## Pod
+
+* Smallest deployable unit in Kubernetes
+* Can contain one or more containers
+* Containers in a Pod share network and storage
+* Pods are temporary and can be recreated
+
+**Use case:** Run a containerized application.
+
+---
+
+## ReplicaSet
+
+* Ensures a specified number of Pods are always running
+* Automatically replaces failed Pods
+* Uses labels to manage Pods
+
+> Usually managed by a Deployment, not created directly.
+
+---
+
+## Deployment
+
+* Manages ReplicaSets and Pods
+* Supports rolling updates and rollbacks
+* Provides scaling and self-healing
+
+**Use case:** Deploy web applications and microservices.
+
+---
+
+## Service
+
+* Exposes Pods as a network service
+* Provides stable IP and DNS name
+* Enables communication inside or outside the cluster
+
+### Types of Services:
+
+* **ClusterIP** – Internal access only (default)
+* **NodePort** – Exposes service via node IP
+* **LoadBalancer** – Uses cloud load balancer
+* **ExternalName** – Maps to external DNS
+
+---
+
+## Namespace
+
+* Logical separation inside a cluster
+* Helps manage resources for multiple teams or projects
+
+### Default Namespaces:
+
+* default
+* kube-system
+* kube-public
+
+---
+
+## ConfigMap
+
+* Stores non-sensitive configuration data
+* Used to externalize application configuration
+* Can be injected as environment variables or files
+
+**Example:** App settings, URLs
+
+---
+
+## Secret
+
+* Stores sensitive information
+* Data is base64 encoded
+* More secure than ConfigMaps
+
+**Example:** Passwords, tokens, API keys
+
+---
+
+## Volume
+
+* Provides storage to Pods
+* Data survives container restarts
+* Exists as long as the Pod exists
+
+---
+
+## PersistentVolume (PV)
+
+* Represents actual storage in the cluster
+* Provisioned by admin or cloud provider
+
+---
+
+## PersistentVolumeClaim (PVC)
+
+* Request for storage by a Pod
+* Binds to a suitable PersistentVolume
+
+**Benefit:** Storage is independent of Pods.
+
+---
+
+## Object Relationships
+
+Deployment → ReplicaSet → Pod → Container
+
+Pod → Service → Network Access
+
+PVC → PV → Physical Storage
+
+---
+
+## Quick Summary Table
+
+| Object     | Purpose                  |
+| ---------- | ------------------------ |
+| Pod        | Runs containers          |
+| ReplicaSet | Maintains Pod count      |
+| Deployment | Manages Pods and updates |
+| Service    | Networking               |
+| Namespace  | Resource isolation       |
+| ConfigMap  | Non-sensitive config     |
+| Secret     | Sensitive data           |
+| Volume     | Pod storage              |
+| PV         | Physical storage         |
+| PVC        | Storage request          |
+
+---
+
+# Imperative and Declarative Methods in kubectl
+
+## Introduction
+kubectl provides two ways to manage Kubernetes resources:
+- Imperative method
+- Declarative method
+
+These methods define **how we create and manage Kubernetes objects**.
+
+---
+
+## Imperative Method
+
+### What is Imperative Method?
+In the imperative method, we **directly tell Kubernetes what action to perform** using kubectl commands.
+
+Resources are created, updated, or deleted **immediately**.
+
+### Examples:
+```bash
+kubectl run nginx --image=nginx
+kubectl create deployment app --image=nginx
+kubectl delete pod nginx
+````
+
+### Characteristics:
+
+* No YAML file required
+* Quick and easy to use
+* Changes are not easily tracked
+* Not recommended for production environments
+
+### Simple Definition:
+
+Imperative method directly instructs Kubernetes to perform actions using commands.
+
+---
+
+## Declarative Method
+
+### What is Declarative Method?
+
+In the declarative method, we **define the desired state** of the resource in a YAML file.
+
+Kubernetes continuously ensures that the cluster matches this desired state.
+
+### Example YAML:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+spec:
+  replicas: 3
+```
+
+### Apply Command:
+
+```bash
+kubectl apply -f deployment.yaml
+```
+
+### Characteristics:
+
+* Uses YAML configuration files
+* Easy to manage and reuse
+* Supports version control (Git)
+* Best suited for production environments
+
+### Simple Definition:
+
+Declarative method defines the desired state in a configuration file and Kubernetes maintains it automatically.
+
+---
+
+## Key Differences
+
+| Feature          | Imperative           | Declarative |
+| ---------------- | -------------------- | ----------- |
+| Method           | Commands             | YAML files  |
+| State management | Manual               | Automatic   |
+| Change tracking  | Difficult            | Easy        |
+| Reusability      | Low                  | High        |
+| Best use         | Testing and learning | Production  |
+
+---
+# Fundamentals of Pod in Kubernetes
+
+## What is a Pod?
+A Pod is the **smallest and simplest unit** in Kubernetes that can be deployed.
+
+A Pod contains:
+- One or more containers
+- Shared network
+- Shared storage (volumes)
+
+Kubernetes always runs containers **inside Pods**, not directly.
+
+---
+
+## Why Pod is Needed?
+- Groups related containers together
+- Allows containers to share:
+  - Same IP address
+  - Same port space
+  - Same storage volumes
+
+---
+
+## Key Characteristics of a Pod
+- Each Pod has a **unique IP address**
+- Containers inside a Pod communicate using **localhost**
+- Pods are **ephemeral** (temporary)
+- If a Pod fails, it is **recreated**, not repaired
+
+---
+
+## Single-Container Pod
+- Most common type of Pod
+- One container per Pod
+- Simple and easy to manage
+
+**Use case:** Running a web application.
+
+---
+
+## Multi-Container Pod
+- Contains multiple containers in one Pod
+- Containers work together
+- Usually follows **sidecar pattern**
+
+**Example use cases:**
+- Log collector
+- Monitoring agent
+- Proxy container
+
+---
+
+## Pod Lifecycle (Simple)
+1. Pod is created
+2. Containers start running
+3. Pod runs normally
+4. Pod may fail or be terminated
+5. New Pod is created if managed by Deployment
+
+---
+
+## Pod Restart Policy
+Defines what happens when a container fails:
+- **Always** – Always restart (default)
+- **OnFailure** – Restart only if failed
+- **Never** – Do not restart
+
+---
+
+## Pod Networking
+- Each Pod gets a **single IP**
+- All containers share the network
+- Pods communicate using:
+  - Pod IP
+  - Service (recommended)
+
+---
+
+## Pod Storage
+- Pods can use **Volumes**
+- Volumes survive container restarts
+- Volumes do not survive Pod deletion
+
+---
+
+## Pod vs Container
+| Pod | Container |
+|----|----------|
+| Kubernetes unit | Runtime unit |
+| Can have multiple containers | Single application |
+| Has IP address | No IP |
+
+---
+
