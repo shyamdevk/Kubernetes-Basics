@@ -1,7 +1,7 @@
 # ☸️ Kubernetes Learning Repository
 
 <p align="center">
-  <img src="https://media.giphy.com/media/kH1DBkPNyZPOk0BxrM/giphy.gif" width="500"/>
+  <img src="https://media.tenor.com/FST_e0IU7lgAAAAM/stressed-angry.gif" width="500"/>
 </p>
 
 ---
