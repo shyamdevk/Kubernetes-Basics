@@ -709,9 +709,6 @@ Test persistence same as previous lab.
 
 ---
 
-````
-
----
 
 # 🚀 Lab 2: Real AWS EBS Volume with Kubernetes
 
