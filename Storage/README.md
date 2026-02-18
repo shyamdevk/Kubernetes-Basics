@@ -609,9 +609,6 @@ This is done using:
 
 ---
 
-# 📘 `README.md`
-
-````markdown
 # 🚀 Kubernetes Dynamic Storage Lab
 Environment:
 - AWS EC2 (Amazon Linux)
