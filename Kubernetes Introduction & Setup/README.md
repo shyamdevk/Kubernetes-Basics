@@ -6,6 +6,7 @@
 <p align="center">
   <img src="https://github.com/shyamdevk/Kubernetes-Basics/blob/images/ku888.gif" width="800">
 </p>
+
 **Kubernetes (K8s)** is an **open-source container orchestration platform** used to **deploy, manage, scale, and monitor containerized applications**.
 
 👉 In simple words:  
