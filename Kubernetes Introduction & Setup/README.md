@@ -3,7 +3,7 @@
 ![Kubernetes](https://github.com/shyamdevk/Kubernetes-Basics/blob/images/kub.gif)
 
 ## What is Kubernetes?
-![Kubernetes](https://github.com/shyamdevk/Kubernetes-Basics/blob/images/k8.mp4)
+![Kubernetes](https://github.com/shyamdevk/Kubernetes-Basics/blob/images/ku8.gif)
 **Kubernetes (K8s)** is an **open-source container orchestration platform** used to **deploy, manage, scale, and monitor containerized applications**.
 
 👉 In simple words:  
